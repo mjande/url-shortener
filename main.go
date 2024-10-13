@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	filename := flag.String("file", "default.yaml", "A YAML file in format\n- path: '/github'\n  url: 'http://github.com'\n")
+	filename := flag.String("file", "default.yaml", "A JSON or YAML file")
 	flag.Parse()
 
 	mux := defaultMux()
@@ -22,22 +22,23 @@ func main() {
 	}
 	mapHandler := urlshort.MapHandler(pathsToUrls, mux)
 
-	// Get YAML from file
-	yaml, err := os.ReadFile(*filename)
+	// Get data from file
+	data, err := os.ReadFile(*filename)
 	if err != nil {
-		fmt.Printf("ERROR: Unable to parse file %s\n", *filename)
+		fmt.Printf("Unable to parse file %s\n", *filename)
 		os.Exit(1)
 	}
 
-	// Build the YAMLHandler using the mapHandler as the
+	// Build the get handler using the mapHandler as the
 	// fallback
-	yamlHandler, err := urlshort.YAMLHandler([]byte(yaml), mapHandler)
+	handler, err := urlshort.GetHandler(filename, data, mapHandler)
 	if err != nil {
-		panic(err)
+		fmt.Println(err.Error())
+		os.Exit(1)
 	}
 
 	fmt.Println("Starting the server on :8080")
-	http.ListenAndServe(":8080", yamlHandler)
+	http.ListenAndServe(":8080", handler)
 }
 
 func defaultMux() *http.ServeMux {

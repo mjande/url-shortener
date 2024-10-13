@@ -1,0 +1,10 @@
+[
+    { 
+        "path": "/microsoft",
+        "url":  "http://microsoft.com"
+    },
+    {
+        "path": "/boltdb",
+        "url":  "https://github.com/boltdb/bolt"
+    }
+]

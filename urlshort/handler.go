@@ -1,7 +1,10 @@
 package urlshort
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
+	"path/filepath"
 
 	"gopkg.in/yaml.v3"
 )
@@ -28,6 +31,24 @@ func MapHandler(pathsToUrls map[string]string, fallback http.Handler) http.Handl
 type pathToUrl struct {
 	Path string
 	Url  string
+}
+
+func GetHandler(filename *string, data []byte, fallback http.HandlerFunc) (http.HandlerFunc, error) {
+	extension := filepath.Ext(*filename)
+	var handler http.HandlerFunc
+	var err error
+	switch extension {
+	case ".yaml", ".yml":
+		handler, err = YAMLHandler(data, fallback)
+	case ".json":
+		handler, err = JSONHandler(data, fallback)
+	default:
+		err = fmt.Errorf("unknown file extension '%s'", extension)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return handler, err
 }
 
 // YAMLHandler will parse the provided YAML and then return
@@ -59,6 +80,25 @@ func YAMLHandler(yml []byte, fallback http.Handler) (http.HandlerFunc, error) {
 func parseYAML(yml []byte) ([]pathToUrl, error) {
 	var res []pathToUrl
 	err := yaml.Unmarshal(yml, &res)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+func JSONHandler(data []byte, fallback http.Handler) (http.HandlerFunc, error) {
+	paths, err := parseJSON(data)
+	if err != nil {
+		return nil, err
+	}
+
+	pathsToUrls := buildMap(paths)
+	return MapHandler(pathsToUrls, fallback), nil
+}
+
+func parseJSON(data []byte) ([]pathToUrl, error) {
+	var res []pathToUrl
+	err := json.Unmarshal(data, &res)
 	if err != nil {
 		return nil, err
 	}
