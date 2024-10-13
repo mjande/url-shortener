@@ -1,13 +1,18 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/mjande/url-shortener/urlshort"
 )
 
 func main() {
+	filename := flag.String("file", "default.yaml", "A YAML file in format\n- path: '/github'\n  url: 'http://github.com'\n")
+	flag.Parse()
+
 	mux := defaultMux()
 
 	// Build the MapHandler using the mux as the fallback
@@ -17,15 +22,15 @@ func main() {
 	}
 	mapHandler := urlshort.MapHandler(pathsToUrls, mux)
 
+	// Get YAML from file
+	yaml, err := os.ReadFile(*filename)
+	if err != nil {
+		fmt.Printf("ERROR: Unable to parse file %s\n", *filename)
+		os.Exit(1)
+	}
+
 	// Build the YAMLHandler using the mapHandler as the
 	// fallback
-	yaml := `
-- path: /urlshort
-  url: https://github.com/gophercises/urlshort
-- path: /urlshort-final
-  url: https://github.com/gophercises/urlshort/tree/solution
-`
-
 	yamlHandler, err := urlshort.YAMLHandler([]byte(yaml), mapHandler)
 	if err != nil {
 		panic(err)
