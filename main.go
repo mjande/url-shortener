@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/mjande/url-shortener/models"
 	"net/http"
 	"os"
 
@@ -29,16 +30,31 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Build the get handler using the mapHandler as the
+	// Build the file handler using the mapHandler as the
 	// fallback
-	handler, err := urlshort.GetHandler(filename, data, mapHandler)
+	fileHandler, err := urlshort.GetFileHandler(filename, data, mapHandler)
 	if err != nil {
 		fmt.Println(err.Error())
 		os.Exit(1)
 	}
 
+	// Open database
+	err = models.InitDB()
+	if err != nil {
+		fmt.Println(err.Error())
+		models.CloseDB()
+		os.Exit(1)
+	}
+	defer models.CloseDB()
+
+	// Build the DBHandler using fileHandler as the fallback
+	handler := urlshort.DBHandler(fileHandler)
+
 	fmt.Println("Starting the server on :8080")
-	http.ListenAndServe(":8080", handler)
+	err = http.ListenAndServe(":8080", handler)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
 }
 
 func defaultMux() *http.ServeMux {
